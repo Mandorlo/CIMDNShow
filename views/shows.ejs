@@ -1,0 +1,290 @@
+<%
+var langues_list = [{
+  label: "Français",
+  val: "FR"
+}, {
+  label: "Anglais",
+  val: "EN"
+}, {
+  label: "Italien",
+  val: "IT"
+}, {
+  label: "Allemand",
+  val: "DE"
+}, {
+  label: "Polonais",
+  val: "PL"
+}, {
+  label: "Arabe",
+  val: "AR"
+}, {
+  label: "Hébreu",
+  val: "HE"
+}];
+%>
+
+<ul class='mdl-list root_shows'>
+  <% for (var i = 1; i < 5; i++) { %>
+  <li class="mdl-list__item item">
+    <span class="mdl-list__item-primary-content">
+      <i class="fa fa-home icon"></i>
+      <% if (i == 0) { %>
+        <span class="title">Full Show</span>
+      <% } else { %>
+        <span class="title">Room <%= i %></span>
+      <% } %>
+    </span>
+    <span id="countdown<%= i %>" class="countdown">
+      <span id="timer<%= i %>" class="timer"></span>
+    <i id="pauseplay<%= i %>" class="fa fa-pause play" onclick="pause(<%= i %>)"></i>
+    <i class="fa fa-stop play" onclick="stop(<%= i %>)"></i>
+    </span>
+
+    <span id="action<%= i %>">
+    <span class="mdl-list__item-secondary-action">
+      <select id="langue<%= i %>" class="langue">
+        <% langues_list.forEach(el => { %>
+          <option value="<%= el.val %>"><%= el.label %></option>
+        <% }) %>
+      </select>
+      <i class="fa fa-play play" onclick="play(<%= i %>)"></i>
+    </span>
+    </span>
+  </li>
+  <% } %>
+
+</ul>
+
+<ul class='mdl-list root_shows'>
+  <li class="mdl-list__item item">
+    <span class="mdl-list__item-primary-content">
+      Alignements
+    </span>
+    <span class="mdl-list__item-secondary-action">
+      <i id="play_align" class="fa fa-play play" onclick="playAlignements()"></i>
+      <i id="stop_align" class="fa fa-stop play" onclick="stopAlignements()"></i>
+    </span>
+  </li>
+</ul>
+
+<style>
+  .root_shows {
+    width: 90%;
+    margin: 5%;
+  }
+
+  .item {
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: row;
+    padding: 7px;
+    border-radius: 14px;
+    margin-bottom: 4px;
+    background: #eeeeFF;
+  }
+
+  .title {}
+
+  .icon {
+    color: white;
+    font-size: 1em;
+    display: inline-block;
+    border-radius: 60px;
+    background-color: #ddddff;
+    box-shadow: 0px 0px 5px #fff;
+    padding: 0.5em 0.6em;
+    width: 15px;
+    height: 15px;
+    text-align: center;
+    margin-right: 10px;
+  }
+
+  .langue {
+    border: none;
+    cursor: pointer;
+    background: none;
+  }
+
+  .countdown {
+    display: none;
+  }
+
+  .play {
+    cursor: pointer;
+    /* border: 1px solid gray; */
+    background: #eee;
+    border-radius: 40px;
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    padding-left: 2px;
+    line-height: 25px;
+  }
+
+  #stop_align {
+    display: none;
+  }
+</style>
+
+<script>
+  var playable = [null, true, true, true, true];
+  var clocks = [null, null, null, null, null];
+  var pauses = [null, false, false, false, false];
+  var times = [null, null, null, null, null];
+
+  function playAlignements() {
+    sendWS("play", "Alignements").then(e => {
+      console.log("alignements play");
+      reset();
+      $("#stop_align").show();
+      $("#play_align").hide();
+    }).catch(e => {
+      console.log("Error alignements play")
+    })
+  }
+
+  function stopAlignements() {
+    sendWS("stop", "Alignements").then(e => {
+      console.log("alignements stop");
+      $("#stop_align").hide();
+      $("#play_align").show();
+    }).catch(e => {
+      console.log("Error alignements stop")
+    })
+  }
+
+  function reset() {
+    for (var i = 1; i < 5; i++) unlock(i);
+    clocks.forEach(c => {
+      if (c) clearInterval(c);
+    })
+  }
+
+  function play(n) {
+    lock(n);
+    sendWS("play", n).then(r => {
+      playUI(n)
+    }).catch(e => {
+      alert("Error :(");
+      console.log("Error play : ", e);
+      unlock(n)
+    })
+
+  }
+
+  function pause(n) {
+    sendWS("pause", n).then(r => {
+      pauses[n] = true;
+      setButtonPlay(n);
+    }).catch(e => {
+      alert("Error :(");
+      console.log("Error pause : ", e);
+    })
+  }
+
+  function setButtonPause(n) {
+    console.log("setting button pause")
+    $("#pauseplay" + n).removeClass("fa-play")
+      .addClass("fa-pause")
+      .unbind("click")
+      .click(e => {
+        e.stopPropagation();
+        pause(n)
+      })
+  }
+
+  function setButtonPlay(n) {
+    console.log("setting button play")
+    $("#pauseplay" + n).removeClass("fa-pause")
+      .addClass("fa-play")
+      .unbind("click")
+      .click(e => {
+        play(n)
+      })
+  }
+
+  function playUI(n) {
+    if (!times[n]) times[n] = {
+      minutes: 15,
+      secondes: 0
+    }
+    setButtonPause(n);
+    pauses[n] = false;
+    clocks[n] = setInterval(function() {
+      if (pauses[n]) clearInterval(clocks[n]); // on ne fait pas de countdown si c'est sur pause
+      $("#timer" + n).text(padd(times[n].minutes) + ":" + padd(times[n].secondes))
+      if (times[n].secondes == 0) {
+        if (times[n].minutes == 0) {
+          unlock(n);
+          clearInterval(clocks[n])
+        } else {
+          times[n].minutes--
+            times[n].secondes = 59
+        }
+      } else {
+        times[n].secondes--
+      }
+    }, 1000);
+    function padd(n) {
+      if (n < 10) return "0" + n;
+      else return n;
+    }
+  }
+
+  function stop(n) {
+    sendWS("stop", n).then(r => {
+      clearInterval(clocks[n]);
+      unlock(n)
+    }).catch(e => {
+      alert("Error :(");
+      console.log("Error stop : ", e);
+    })
+  }
+
+  function lock(n) {
+    $("#countdown" + n).show();
+    $("#action" + n).hide();
+    if (n < 4) {
+      $("#action" + (n + 1)).hide();
+    }
+  }
+
+  function unlock(n) {
+    times[n] = null;
+    pauses[n] = false;
+    $("#countdown" + n).hide();
+    $("#action" + n).show();
+    $("#play" + n).show();
+    if (n < 4) {
+      $("#action" + (n + 1)).show();
+    }
+  }
+
+  function sendWS(cmd, n) { // cmd = play, pause, stop
+    var langue = $("#langue" + n).val();
+    console.log("langue", langue);
+    return new Promise((resolve, reject) => {
+      getJSON("/" + cmd + "?show=" + n + "&lang=" + langue).then(r => {
+        resolve(r)
+      }).catch(e => {
+        reject(e)
+      })
+    })
+  }
+
+  function getJSON(url) {
+    var xhttp;
+    xhttp = new XMLHttpRequest();
+    return new Promise((resolve, reject) => {
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          resolve(JSON.parse(this.responseText));
+        } else if (this.readyState == 4) {
+          reject(this);
+        }
+      };
+      xhttp.open("GET", url, true);
+      xhttp.send();
+    })
+  }
+</script>

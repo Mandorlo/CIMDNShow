@@ -1,0 +1,506 @@
+<%
+var langues_list = [{
+  label: "Français",
+  val: "FR"
+}, {
+  label: "Anglais",
+  val: "EN"
+}, {
+  label: "Italien",
+  val: "IT"
+}, {
+  label: "Allemand",
+  val: "DE"
+}, {
+  label: "Polonais",
+  val: "PL"
+}, {
+  label: "Arabe",
+  val: "AR"
+}, {
+  label: "Hébreu",
+  val: "HE"
+}, {
+  label: "Espagnol",
+  val: "ES"
+}, {
+  label: "Portugais",
+  val: "PT"
+}, {
+  label: "Russe",
+  val: "RU"
+}, {
+  label: "Japonais",
+  val: "JA"
+}, {
+  label: "Portugais",
+  val: "PT"
+}, {
+  label: "Roumain",
+  val: "RO_IT"
+}, {
+  label: "Chinois",
+  val: "ZH_EN"
+}, {
+  label: "Lithuanien",
+  val: "LT_EN"
+}];
+%>
+
+  <p class="description">
+    Sélectionner la langue puis cliquer sur <i class="fa fa-play play"></i> pour lancer le show :)<br> Note que les salles suivantes vont démarrer automatiquement, pas besoin de recliquer ;)<br> La ligne "Full Show" va lancer le show avec la musique d'intro,
+    alors que "Room 1" va lancer directement la salle 1 sans la musique d'intro
+  </p>
+
+  <ul class='mdl-list root_shows'>
+    <% for (var i = 0; i < 5; i++) { %>
+      <div id="progress<%= i %>" class="progress"></div>
+      <li id="item<%= i %>" class="mdl-list__item item">
+        <span class="mdl-list__item-primary-content">
+      <i id="roomicon<%= i %>" class="fa fa-video-camera icon" onclick="getStatus(<%= i %>)"></i>
+      <% if (i == 0) { %>
+        <span class="title">Full Show&nbsp;&nbsp;</span>
+        <% } else { %>
+          <span class="title">Room <%= i %>&nbsp;&nbsp;</span>
+          <% } %>
+            <span id="subtitle<%= i %>" class="mdl-list__item-sub-title subtitle"></span>
+            </span>
+
+            <span id="countdown<%= i %>" class="countdown">
+      <span id="timer<%= i %>" class="timer"></span>
+            <% if (i > 0) { %>
+              <i id="pauseplay<%= i %>" class="fa fa-pause play" onclick="pause(<%= i %>)"></i>
+              <% } %>
+                <i class="fa fa-stop play" onclick="stop(<%= i %>)"></i>
+                </span>
+
+                <span id="action<%= i %>" class="mdl-list__item-secondary-action">
+      <select id="langue<%= i %>" class="langue">
+        <% langues_list.forEach(el => { %>
+          <option value="<%= el.val %>"><%= el.label %></option>
+        <% }) %>
+      </select>
+      <i id="playbutton<%= i%>" class="fa fa-play play" onclick="play(<%= i %>)"></i>
+      <div class="mdl-tooltip" for="playbutton<%= i %>" style="z-index:0">
+        <% if (i == 0) { %>
+          Lancer tout le show multimedia avec la musique d'intro
+        <% } else if (i == 1) { %>
+            Lancer à partir de la salle 1 sans la musique d'intro
+        <% } else { %>
+          Lancer à partir de la salle <%= i %>
+        <% } %>
+      </div>
+    </span>
+      </li>
+      <% } %>
+
+  </ul>
+
+  <ul class='mdl-list root_alignments'>
+    <li class="mdl-list__item item">
+      <span class="mdl-list__item-primary-content">
+      Alignements
+    </span>
+      <span class="mdl-list__item-secondary-action">
+      <i id="play_align" class="fa fa-play play" onclick="playAlignements()"></i>
+      <i id="stop_align" class="fa fa-stop play" onclick="stopAlignements()"></i>
+    </span>
+    </li>
+  </ul>
+
+  <ul class='mdl-list root_doors'>
+    <% for (var i = 1; i < 5; i++) { %>
+      <li class="mdl-list__item item_door">
+        <span class="mdl-list__item-primary-content">
+        Door <%= i %>
+      </span>
+        <span class="mdl-list__item-secondary-action">
+        <select id="doortype<%= i %>" class="doortype">
+          <option value="entrance">Entrance</option>
+          <option value="exit">Exit</option>
+        </select>
+        <span id="opendoor<%= i %>" class="mdl-button mdl-js-button dooropenclose" onclick="door('open', <%= i %>)">OPEN</span>
+        <span id="closedoor<%= i %>" class="mdl-button mdl-js-button dooropenclose" onclick="door('close', <%= i %>)">CLOSE</span>
+        </span>
+      </li>
+      <% } %>
+  </ul>
+
+  <style>
+    .description {
+      width: 90%;
+      margin-left: 5%;
+    }
+
+    .root_shows,
+    .root_doors {
+      width: 90%;
+      margin: 5%;
+    }
+
+    .root_alignments {
+      margin-top: 50px;
+    }
+
+    .item {
+      position: relative;
+      border: 1px solid #eee;
+      padding: 7px;
+      margin-bottom: 4px;
+      margin-top: -20px;
+      background-color: rgba(222, 222, 222, 0.25);
+      z-index: 5;
+    }
+
+    .item_door {
+      border: 1px solid #eee;
+      padding: 7px;
+      margin-bottom: 4px;
+      background-color: rgba(222, 222, 222, 0.25);
+      z-index: 5;
+    }
+
+    #item0 {
+      margin-bottom: 30px;
+    }
+
+    .progress {
+      margin-top: -20px;
+      position: relative;
+      top: 27px;
+      background-color: #bbbbff;
+      width: 0;
+      height: 47px;
+      z-index: 0;
+    }
+
+    .subtitle {
+      padding-left: 10px;
+      /* font-size: 0.7em;
+    color: #888; */
+    }
+
+    .icon {
+      color: #ddd;
+      cursor: pointer;
+      font-size: 1em;
+      display: inline-block;
+      border-radius: 60px;
+      background-color: #fff;
+      box-shadow: 0px 0px 5px #fff;
+      padding: 0.5em 0.6em;
+      width: 15px;
+      height: 15px;
+      text-align: center;
+      margin-right: 10px;
+    }
+
+    .icon_active {
+      color: #bbbbff;
+    }
+
+    .langue,
+    .doortype {
+      border: none;
+      cursor: pointer;
+      background: none;
+    }
+
+    .countdown {
+      display: none;
+    }
+
+    .play {
+      cursor: pointer;
+      color: #444;
+      /* border: 1px solid gray; */
+      background: #eee;
+      border-radius: 40px;
+      width: 25px;
+      height: 25px;
+      text-align: center;
+      padding-left: 2px;
+      line-height: 25px;
+    }
+
+    #stop_align {
+      display: none;
+    }
+
+    .dooropenclose {
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+  </style>
+
+  <script defer>
+    // on demande les shows
+    function startup(n) {
+      if (n > 4) return;
+      else getStatus(n).then(r => startup(n + 1)).catch(e => startup(n + 1))
+    }
+    document.addEventListener('DOMContentLoaded', _ => {
+      startup(0)
+    }, false);
+
+    var default_seconds = 15 * 60;
+    var intro_seconds = 1 * 60 + 30;
+    var playable = [true, true, true, true, true];
+    var clocks = [null, null, null, null, null];
+    var pauses = [false, false, false, false, false];
+    var times = [null, null, null, null, null];
+
+    function playAlignements() {
+      if (times.some(el => !el && true)) { // s'il y a des shows en cours, ne pas lancer les alignements
+        alert("Show is already playing, stop all the shows before launching the alignments plz :)");
+        return
+      }
+      sendWS("play", "Alignements").then(e => {
+        console.log("alignements play");
+        reset();
+        $("#stop_align").show();
+        $("#play_align").hide();
+      }).catch(e => {
+        console.log("Error alignements play")
+      })
+    }
+
+    function stopAlignements() {
+      sendWS("stop", "Alignements").then(e => {
+        console.log("alignements stop");
+        $("#stop_align").hide();
+        $("#play_align").show();
+      }).catch(e => {
+        console.log("Error alignements stop")
+      })
+    }
+
+    function reset() {
+      for (var i = 1; i < 5; i++) unlock(i);
+      clocks.forEach(c => {
+        if (c) clearInterval(c);
+      })
+      $(".progress").css({
+        width: "0px"
+      });
+      $(".subtitle").text('');
+      $(".item .icon").removeClass("icon_active")
+    }
+
+    function play(n, simul = false) {
+      lock(n);
+      if (simul) {
+        getStatus(n);
+        return
+      }
+      sendWS("play", n).then(r => {
+        playUI(n)
+      }).catch(e => {
+        console.log("Error play : ", e);
+        alert("Error in sending play " + n + " to watchout :(");
+        unlock(n)
+      })
+
+    }
+
+    function pause(n) {
+      sendWS("pause", n).then(r => {
+        pauses[n] = true;
+        setButtonPlay(n);
+      }).catch(e => {
+        console.log("Error pause : ", e);
+        alert("Error :(");
+      })
+    }
+
+    function setButtonPause(n) {
+      $("#pauseplay" + n).removeClass("fa-play")
+        .addClass("fa-pause")
+        .unbind("click")
+        .click(e => {
+          e.stopPropagation();
+          pause(n)
+        })
+    }
+
+    function setButtonPlay(n) {
+      $("#pauseplay" + n).removeClass("fa-pause")
+        .addClass("fa-play")
+        .unbind("click")
+        .click(e => {
+          play(n)
+        })
+    }
+
+    function door(open_or_close, n) {
+      var type = $("#doortype" + n).val();
+      return new Promise((resolve, reject) => {
+        var url = "/door/" + open_or_close + "?type=" + type + "&num=" + n;
+        console.log("Sending url:", url);
+        getJSON(url).then(r => {
+          resolve(r)
+        }).catch(e => {
+          reject(e)
+        })
+      })
+    }
+
+    function playUI(n) {
+      if (!times[n]) times[n] = moment();
+      setButtonPause(n);
+      pauses[n] = false;
+      clearInterval(clocks[n]);
+      clocks[n] = setInterval(function() {
+        if (pauses[n]) clearInterval(clocks[n]); // on ne fait pas de countdown si c'est sur pause
+        var time_left = getTimeLeft(n);
+        $("#timer" + n).text(time_left);
+        setProgress(n);
+        if (time_left == "00:00") {
+          unlock(n);
+          clearInterval(clocks[n]);
+          if (n < 4) { // si on n'est pas à la salle 4, on joue automatiquement la salle suivante
+            $("#langue" + (n + 1)).val(getLangue(n));
+            // playUI(n + 1);
+            setTimeout(_ => getStatus(n + 1), 200);
+          }
+        }
+      }, 1000);
+    }
+
+    function getTimeLeft(n) {
+      if (times[n]) {
+        var total_ms = (n == 0) ? intro_seconds*1000 : default_seconds*1000;
+        var passed_ms = moment().diff(times[n]);
+        if (passed_ms > total_ms) return "00:00";
+        else return moment.utc(total_ms - passed_ms).format("mm:ss")
+      } else if (n == 0) {
+        return moment.utc(intro_seconds * 1000).format("mm:ss")
+      } else {
+        return moment.utc(default_seconds * 1000).format("mm:ss")
+      }
+    }
+
+    function setProgress(n) {
+      var total_w = $(".item").eq(0).width();
+      var total_time = (n == 0) ? intro_seconds : default_seconds;
+      var alpha = 0;
+      if (times[n]) alpha = (moment().diff(times[n], 'seconds')) / total_time;
+
+      alpha = Math.min(alpha, 1.1);
+      var w = parseInt(total_w * alpha);
+      $("#progress" + n).animate({
+        width: w + "px"
+      }, 500)
+    }
+
+    function stop(n) {
+      sendWS("stop", n).then(r => {
+        clearInterval(clocks[n]);
+        unlock(n)
+      }).catch(e => {
+        alert("Error :(");
+        console.log("Error stop : ", e);
+      })
+    }
+
+    function lock(n) {
+      $("#countdown" + n).show();
+      $("#action" + n).hide();
+      if (n < 4) {
+        $("#action" + (n + 1)).hide();
+      }
+      $("#subtitle" + n).text(getLangue(n));
+      $("#item" + n + " .icon").eq(0).addClass("icon_active");
+    }
+
+    function unlock(n) {
+      times[n] = null;
+      pauses[n] = false;
+      $("#countdown" + n).hide();
+      $("#action" + n).show();
+      $("#play" + n).show();
+      if (n < 4) {
+        $("#action" + (n + 1)).show();
+      }
+      $("#subtitle" + n).text('');
+      $("#item" + n + " .icon").eq(0).removeClass("icon_active");
+      $("#progress" + n).animate({
+        width: "0px"
+      }, 200);
+    }
+
+    function sendWS(cmd, n) { // cmd = play, pause, stop
+      var langue = getLangue(n);
+      console.log("langue", langue);
+      return new Promise((resolve, reject) => {
+        getJSON("/" + cmd + "?show=" + n + "&lang=" + langue).then(r => {
+          resolve(r)
+        }).catch(e => {
+          reject(e)
+        })
+      })
+    }
+
+    function getStatus(n) {
+      setUIStatus(n, "loading");
+      return new Promise((resolve, reject) => {
+        getJSON("/status?room=" + n).then(room_status => {
+          if (room_status.time2) {
+            times[n] = moment().subtract(room_status.time2, 'ms');
+            if (room_status.lang) $("#langue" + n).val(room_status.lang);
+            lock(n);
+            playUI(n);
+            setUIStatus(n, "success");
+            resolve(room_status)
+          } else if (room_status.error) {
+            setUIStatus(n, "error");
+            reject(room_status)
+          } else {
+            setUIStatus(n, "success");
+            resolve(room_status)
+          }
+        }).catch(e => {
+          setUIStatus(n, "error");
+          if (e.time2) {
+            times[n] = moment().subtract(room_status.time2, 'ms');
+            $("#langue" + n).val(room_status.lang);
+            lock(n);
+            playUI(n);
+          }
+          console.log("Error retrieving status:", e)
+          reject(e)
+        })
+      })
+    }
+
+    function getLangue(n) {
+      return $("#langue" + n).val();
+    }
+
+    function setUIStatus(num_room, state) { // state = 'loading' || 'success' || 'error'
+      var el = $("#roomicon" + num_room);
+      if (state == 'loading') {
+        el.removeClass("fa-video-camera fa-times").addClass("fa-spinner fa-pulse")
+      } else if (state == 'error') {
+        el.removeClass("fa-video-camera fa-spinner fa-pulse").addClass("fa-times")
+      } else {
+        el.removeClass("fa-times fa-spinner fa-pulse").addClass("fa-video-camera")
+      }
+    }
+
+    function getJSON(url) {
+      var xhttp;
+      xhttp = new XMLHttpRequest();
+      return new Promise((resolve, reject) => {
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            resolve(JSON.parse(this.responseText));
+          } else if (this.readyState == 4) {
+            reject(this);
+          }
+        };
+        xhttp.open("GET", url, true);
+        xhttp.send();
+      })
+    }
+  </script>
