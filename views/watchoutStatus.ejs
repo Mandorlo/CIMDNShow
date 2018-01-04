@@ -1,0 +1,75 @@
+<ul class='mdl-list root_status'>
+  <li class="mdl-list__item item">
+    <span class="mdl-list__item-primary-content">
+      <i id="ws-status-icon" class="fa fa-home icon" onclick="getWatchoutStatus()"></i>
+      <span class="title">Watchout Status</span>
+    </span>
+
+    <span class="mdl-list__item-secondary-action" style="margin-right:20px;">
+      <label id="switch-ws" class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-wsstatus">
+        <input type="checkbox" id="switch-wsstatus" class="mdl-switch__input" onclick="toggleWatchout()">
+        <span class="mdl-switch__label"></span>
+      </label>
+    </span>
+  </li>
+</ul>
+
+<script>
+var ws_online = false;
+
+function toggleWatchout() {
+  setWatchoutStatusUI('loading');
+  var action = (ws_online) ? "offline" : "online";
+  ajax("/watchoutstatus?action=" + action).then(res => {
+    console.log("put ws status " + action + "=", res)
+    ws_online = (res == 'online');
+    if (typeof res != 'string') res = 'offline';
+    setWatchoutStatusUI(res)
+  }).catch(e => {
+    ws_online = false
+    console.log("error putting ws status to " + action, e)
+    setWatchoutStatusUI("error")
+  })
+}
+
+function setWatchoutStatusUI(state) { // 'online' || 'offline' || 'error' || 'loading'
+  var ic = $("#ws-status-icon");
+
+  if (state == 'online') {
+    $("#switch-ws")[0].MaterialSwitch.on()
+    ic.removeClass('fa-times fa-spinner fa-pulse').addClass('fa-home')
+  } else {
+    $("#switch-ws")[0].MaterialSwitch.off();
+    if (state == 'error') {
+      ic.removeClass('fa-home fa-spinner fa-pulse').addClass('fa-times')
+    } else if (state == 'loading') {
+      ic.removeClass('fa-home fa-times').addClass('fa-spinner fa-pulse')
+    } else if (state == 'offline') {
+      ic.removeClass('fa-times fa-spinner fa-pulse').addClass('fa-home')
+    } else {
+      console.log("cannot put ws status to ", state);
+      ic.removeClass('fa-home fa-spinner fa-pulse').addClass('fa-times')
+    }
+  }
+}
+
+function getWatchoutStatus() {
+  setWatchoutStatusUI('loading')
+  ajax("/watchoutstatus?action=ping").then(res => {
+    console.log("received ws status", res)
+    setWatchoutStatusUI(res)
+  }).catch(e => {
+    console.log("error ws status", e)
+    setWatchoutStatusUI("error")
+  })
+}
+
+function checkWSConnection() {
+  if (!ws_online) {
+    toast('Not connected to watchout server :(')
+    return false
+  } else {
+    return true
+  }
+}
+</script>

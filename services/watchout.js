@@ -7,10 +7,16 @@ var _ = require('lodash');
 var moment = require('moment');
 
 var client = new net.Socket();
+var connected = false;
 
-client.connect(3040, '192.168.100.53', function() {
-  console.log('Client Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss"));
-});
+connect();
+
+function connect() {
+  client.connect(3040, '192.168.100.53', function() {
+    console.log('Client Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss"));
+    connected = true;
+  });
+}
 
 client.on('data', function(data) {
   console.log('Client Received: ' + data);
@@ -23,21 +29,13 @@ client.on('close', function() {
 
 client.on('error', e => {
   console.log("Socket error : ", e);
-  client.connect(3040, '192.168.100.53', function() {
-    console.log('Client Connected after error');
-  });
-})
-
-client.on('disconnect', r => { // TODO : TO BE TESTED, don't know if this 'disconnect' actually exists
-  console.log("Socket disconnected:", r);
-  client.connect(3040, '192.168.100.53', function() {
-    console.log('Client Connected again after disconnection');
-  });
+  connect()
 })
 
 function quit() {
   client.destroy();
   console.log("Client destroyed")
+  connected = false
 }
 
 function send(message) {
@@ -47,6 +45,14 @@ function send(message) {
   } catch (exception) {
     console.log(exception);
   }
+}
+
+function setOnline() { // sets the watchout in the online status
+  send('online true\n')
+}
+
+function setOffline() { // sets the watchout in the offline status
+  send('online false\n')
 }
 
 function toggle(timeline) {
@@ -59,8 +65,6 @@ function toggle(timeline) {
 
 function kill(timeline) {
   send('kill \"' + timeline + '\"\n');
-  // states = _.filter(states, ['name', timeline]);
-  // writeStates().catch(e => console.log("Error writing states after kill:", e));
 }
 
 function playRoom(n, lang) {
@@ -90,26 +94,41 @@ function closeDoor(type, n) { // type = "entrance" || "exit"
 
 function run(timeline) {
   send('run \"' + timeline + '\"\n');
-  // states.push({
-  //   'name': timeline,
-  //   'start': moment()
-  // });
-  // writeStates().catch(e => console.log("Error writing states after run:", e));
 }
 
 function halt(timeline) {
   send('halt \"' + timeline + '\"\n');
-  // states = _.filter(states, ['name', timeline]);
-  // writeStates().catch(e => console.log("Error writing states after halt:", e));
 }
 
 function gotoControlCue(timeline, command) {
   send('gotoControlCue \"' + command + '\" false ' + timeline + '\n');
 }
 
+
+// ====== TERMINATE GRACEFULLY =====
+if (process.platform === "win32") {
+  var rl = require("readline").createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  rl.on("SIGINT", function () {
+    process.emit("SIGINT");
+  });
+}
+
+process.on("SIGINT", function () {
+  console.log("exiting watchout client...")
+  quit()
+  process.exit()
+});
+
+
+// ===== EXPORT USEFUL FUNCTIONS =====
 module.exports = {
   client: client,
   send: send,
+  connected: connected,
   toggle: toggle,
   kill: kill,
   run: run,
@@ -119,5 +138,8 @@ module.exports = {
   openDoor: openDoor,
   closeDoor: closeDoor,
   halt: halt,
-  gotoControlCue: gotoControlCue
+  gotoControlCue: gotoControlCue,
+  setOnline: setOnline,
+  setOffline: setOffline,
+  quit: quit
 }

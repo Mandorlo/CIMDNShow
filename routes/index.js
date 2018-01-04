@@ -28,16 +28,16 @@ var SIMUL = false; // si true, on n'evoie pas les commandes à watchout
 /* GET home page. */
 router.get('/', function(req, res, next) {
   //ws.readStates().then(states => {
-    //console.log("states raw", states);
-    // on retravaille un peu les states pour qu'ils soient utilisables
-    //var new_states = parseStates();
-    //console.log("states", new_states);
-    // on lance le rendu de la page
-    res.render('index', {
-      title: 'CIMDN Show',
-      shows: [],
-      simul: SIMUL
-    });
+  //console.log("states raw", states);
+  // on retravaille un peu les states pour qu'ils soient utilisables
+  //var new_states = parseStates();
+  //console.log("states", new_states);
+  // on lance le rendu de la page
+  res.render('index', {
+    title: 'CIMDN Show',
+    shows: [],
+    simul: SIMUL
+  });
   // }).catch(e => {
   //   res.send(e)
   // })
@@ -171,6 +171,33 @@ router.get('/status', (req, res, next) => {
       e.error = true;
       res.send(e)
     })
+  }
+})
+
+router.get('/watchoutstatus', (req, res, next) => {
+  var action = req.query.action;
+  if (action == 'ping' || action == 'status') {
+    wsStatus.ping().then(status => {
+      if (status) res.send("online");
+      else res.send("offline")
+    }).catch(e => {
+      res.send("offline")
+    })
+  } else if (action == 'online') {
+    ws.setOnline();
+    setTimeout(_ => {
+      wsStatus.ping().then(status => {
+        if (status) res.send("online")
+        else res.send({error: true, descr: "couldn't set watchout online :("})
+      }).catch(e => {
+        res.send({error: true})
+      })
+    }, 300)
+  } else if (action == 'offline') {
+    ws.setOffline();
+    res.send('offline'); // TODO s'assurer que la commande s'est bien passée avant de renvoyer offline
+  } else {
+    console.log("ERROR : command watchoutstatus " + action + " is not valid")
   }
 })
 

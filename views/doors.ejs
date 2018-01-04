@@ -1,0 +1,59 @@
+<ul class='mdl-list root_doors'>
+  <% for (var i = 1; i < 5; i++) { %>
+    <li class="mdl-list__item item_door">
+      <span class="mdl-list__item-primary-content">
+      Door <%= i %>
+    </span>
+      <span class="mdl-list__item-secondary-action">
+      <select id="doortype<%= i %>" class="doortype">
+        <option value="entrance">Entrance</option>
+        <option value="exit">Exit</option>
+      </select>
+      <span id="opendoor<%= i %>" class="mdl-button mdl-js-button dooropenclose" onclick="door('open', <%= i %>)">OPEN</span>
+      <span id="closedoor<%= i %>" class="mdl-button mdl-js-button dooropenclose" onclick="door('close', <%= i %>)">CLOSE</span>
+      </span>
+    </li>
+    <% } %>
+</ul>
+
+<style>
+.root_doors {
+  width: 90%;
+  margin-left: 5%;
+}
+
+.item_door {
+  border: 1px solid #eee;
+  padding: 7px;
+  margin-bottom: 4px;
+  background-color: rgba(222, 222, 222, 0.25);
+  z-index: 5;
+}
+
+.doortype {
+  border: none;
+  cursor: pointer;
+  background: none;
+}
+
+.dooropenclose {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+</style>
+
+<script>
+function door(open_or_close, n) {
+  if (!checkWSConnection()) return;
+  var type = $("#doortype" + n).val();
+  return new Promise((resolve, reject) => {
+    var url = "/door/" + open_or_close + "?type=" + type + "&num=" + n;
+    console.log("Sending url:", url);
+    getJSON(url).then(r => {
+      resolve(r)
+    }).catch(e => {
+      reject(e)
+    })
+  })
+}
+</script>

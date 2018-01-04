@@ -1,0 +1,40 @@
+<ul class='mdl-list root_alignments'>
+  <li class="mdl-list__item item">
+    <span class="mdl-list__item-primary-content">
+    Alignements
+  </span>
+    <span class="mdl-list__item-secondary-action">
+    <i id="play_align" class="fa fa-play play" onclick="playAlignements()"></i>
+    <i id="stop_align" class="fa fa-stop play" onclick="stopAlignements()"></i>
+  </span>
+  </li>
+</ul>
+
+<script>
+function playAlignements() {
+  if (!checkWSConnection()) return;
+  if (times.some(el => !el && true)) { // s'il y a des shows en cours, ne pas lancer les alignements
+    alert("Show is already playing, stop all the shows before launching the alignments plz :)");
+    return
+  }
+  sendWS("play", "Alignements").then(e => {
+    console.log("alignements play");
+    reset();
+    $("#stop_align").show();
+    $("#play_align").hide();
+  }).catch(e => {
+    console.log("Error alignements play")
+  })
+}
+
+function stopAlignements() {
+  if (!checkWSConnection()) return;
+  sendWS("stop", "Alignements").then(e => {
+    console.log("alignements stop");
+    $("#stop_align").hide();
+    $("#play_align").show();
+  }).catch(e => {
+    console.log("Error alignements stop")
+  })
+}
+</script>
