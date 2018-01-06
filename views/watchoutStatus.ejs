@@ -57,6 +57,7 @@ function getWatchoutStatus() {
   setWatchoutStatusUI('loading')
   ajax("/watchoutstatus?action=ping").then(res => {
     console.log("received ws status", res)
+    ws_online = (res == 'online');
     setWatchoutStatusUI(res)
   }).catch(e => {
     console.log("error ws status", e)

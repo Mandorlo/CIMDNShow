@@ -222,7 +222,10 @@ function getStatusAll() {
 }
 
 function ping() {
-  if (!connected) return Promise.reject(false);
+  if (!connected) {
+    console.log("cannot ping because not connected to watchout server")
+    return Promise.reject(false);
+  }
 
   send("ping\n")
 

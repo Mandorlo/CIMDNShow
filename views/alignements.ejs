@@ -11,17 +11,18 @@
 </ul>
 
 <script>
+var align_playing = false;
+
 function playAlignements() {
   if (!checkWSConnection()) return;
-  if (times.some(el => !el && true)) { // s'il y a des shows en cours, ne pas lancer les alignements
+  if (times.some(el => el && true)) { // s'il y a des shows en cours, ne pas lancer les alignements
     alert("Show is already playing, stop all the shows before launching the alignments plz :)");
+    console.log("times", times)
     return
   }
   sendWS("play", "Alignements").then(e => {
     console.log("alignements play");
-    reset();
-    $("#stop_align").show();
-    $("#play_align").hide();
+    playAlignementsUI()
   }).catch(e => {
     console.log("Error alignements play")
   })
@@ -30,11 +31,19 @@ function playAlignements() {
 function stopAlignements() {
   if (!checkWSConnection()) return;
   sendWS("stop", "Alignements").then(e => {
+    align_playing = false;
     console.log("alignements stop");
     $("#stop_align").hide();
     $("#play_align").show();
   }).catch(e => {
     console.log("Error alignements stop")
   })
+}
+
+function playAlignementsUI() {
+  reset();
+  align_playing = true
+  $("#stop_align").show();
+  $("#play_align").hide();
 }
 </script>

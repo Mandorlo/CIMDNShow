@@ -27,20 +27,11 @@ var SIMUL = false; // si true, on n'evoie pas les commandes à watchout
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  //ws.readStates().then(states => {
-  //console.log("states raw", states);
-  // on retravaille un peu les states pour qu'ils soient utilisables
-  //var new_states = parseStates();
-  //console.log("states", new_states);
-  // on lance le rendu de la page
   res.render('index', {
     title: 'CIMDN Show',
     shows: [],
     simul: SIMUL
   });
-  // }).catch(e => {
-  //   res.send(e)
-  // })
 });
 
 
