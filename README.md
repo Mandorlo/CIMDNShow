@@ -16,8 +16,8 @@ Watchout has a doc to remotely control shows through TCP : http://www.eurolocati
 
 This application establishes a TCP connection with the watchout server and sends the appropriate commands to launch the shows etc.
 There are 2 ways to control the watchout :
-- through port 3040 (services/watchout.js) : to send the play/pause/stop commands for the shows and open/close the doors
-- through port 3039 (services/watchoutStatus.js) : to get the current status of the rooms (timing)
+- through port 3040 on watchout producer (services/watchout.js) : to send the play/pause/stop commands for the shows and open/close the doors
+- through port 3039 on any projector computer (I used projector 33) (services/watchoutStatus.js) : to get the current status of the rooms (timing)
 
 The web interface is defined in /views. The important file is shows.ejs which defines the main UI. It includes :
 - __watchoutStatus.ejs__ to set/get the connection to the watchout server
