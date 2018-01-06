@@ -80,7 +80,12 @@ client.on('data', function(data) {
       if (s.room) waitStatusRoom[parseInt(s.room)]--;
     }
     waitStatuses--;
-  } else console.log('Client Received: ' + data);
+  } else if (/Error 8/gi.test(data) && /Not authorized/gi.test(data)) {
+    console.log("Error WatchoutStatus Not authorized. Maybe it diconnected, trying to reconnect...")
+    connect().then(r => console.log(r)).catch(e => console.log(e))
+  } else {
+    console.log('Client Received: ' + data);
+  }
 });
 
 client.on('close', function() {
