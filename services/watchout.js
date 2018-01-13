@@ -8,14 +8,29 @@ var moment = require('moment');
 
 var client = new net.Socket();
 var connected = false;
+var errorQueue = {};
 
 connect();
 
 function connect() {
-  client.connect(3040, '192.168.100.53', function() {
-    console.log('Client Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss"));
-    connected = true;
-  });
+  return new Promise((resolve, reject) => {
+    client.connect(3040, '192.168.100.53', function() {
+      console.log('Client Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss"));
+      connected = true;
+      resolve(true)
+    });
+  })
+
+  var myClock = setInterval(_ => {
+    if (!connected && errorQueue['timedout']) {
+      errorQueue['timedout'] = undefined;
+      clearInterval(myClock);
+      reject(false)
+    } else if (connected) {
+      clearInterval(myClock);
+      return
+    }
+  }, 200)
 }
 
 client.on('data', function(data) {
@@ -28,8 +43,17 @@ client.on('close', function() {
 });
 
 client.on('error', e => {
-  console.log("Socket error : ", e);
-  connect()
+  if (e.errno && e.errno == "ECONNRESET") {
+    connected = false;
+    console.log("Trying to reconnect...")
+    connect()
+  } else if (e.errno && e.errno == "ETIMEDOUT") {
+    connected = false;
+    errorQueue['timedout'] = true;
+    console.log('Unable to connect to watchout server (time out)')
+  } else {
+    console.log("Socket watchoutStatus error : ", e)
+  }
 })
 
 function quit() {
@@ -112,12 +136,12 @@ if (process.platform === "win32") {
     output: process.stdout
   });
 
-  rl.on("SIGINT", function () {
+  rl.on("SIGINT", function() {
     process.emit("SIGINT");
   });
 }
 
-process.on("SIGINT", function () {
+process.on("SIGINT", function() {
   console.log("exiting watchout client...")
   quit()
   process.exit()
