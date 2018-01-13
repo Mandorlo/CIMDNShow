@@ -102,6 +102,9 @@ client.on('error', e => {
     connected = false;
     errorQueue['timedout'] = true;
     console.log('Unable to connect to watchout server (time out)')
+  } else if (e.errno && e.errno == "ECONNREFUSED") {
+    connected = false;
+    console.log('Unable to connect to watchout server (connection refused)')
   } else {
     console.log("Socket watchoutStatus error : ", e)
   }

@@ -2,6 +2,8 @@
 // all commands sent to watchout have to end with a \n
 // watchout commands : http://www.eurolocation.fr/docs/watchout4.pdf page 221
 
+var CMDLINE_USAGE = false; // set to true if you want to use this module from the cmd line
+
 var net = require('net');
 var _ = require('lodash');
 var moment = require('moment');
@@ -130,7 +132,7 @@ function gotoControlCue(timeline, command) {
 
 
 // ====== TERMINATE GRACEFULLY =====
-if (process.platform === "win32") {
+if (process.platform === "win32"  && !CMDLINE_USAGE) {
   var rl = require("readline").createInterface({
     input: process.stdin,
     output: process.stdout
