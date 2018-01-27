@@ -12,6 +12,7 @@ var corresp_lang = {
   "AR": "ARABIC",
   "HE": "HEBREW",
   "SP": "SPANISH",
+  "ES": "SPANISH",
   "IT": "ITALIAN",
   "DE": "GERMAN",
   "PT": "PORTUGUESE",
