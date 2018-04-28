@@ -1,61 +1,56 @@
 // watchout commands used here can be found at http://www.eurolocation.fr/docs/watchout4.pdf page 228
 
-var CMDLINE_USAGE = false; // set to true if you want to use this module from the cmd line
+const CMDLINE_USAGE = false // set to true if you want to use this module from the cmd line
 
-var net = require('net');
-var _ = require('lodash');
-var moment = require('moment');
-var fs = require('fs');
-var path = require('path');
+const net = require('net')
+const _ = require('lodash')
+const moment = require('moment')
+const fs = require('fs')
+const path = require('path')
+const process = require('process')
+process.setMaxListeners(2)
 
-var client = new net.Socket();
-var connected = false;
-var errorQueue = {};
+const IP_ADDR = '192.168.100.33'
+const PORT = 3039
 
-var waitStatuses = 0;
-var waitStatusRoom = [0, 0, 0, 0, 0];
-var waitPing = false;
-var showStatus = [
+let client = new net.Socket();
+let connected = false;
+let errorQueue = {};
+
+let waitStatuses = 0;
+let waitStatusRoom = [0, 0, 0, 0, 0];
+let waitPing = false;
+let showStatus = [
   [],
   [],
   [],
   [],
   []
 ];
-var lastUpdate = null;
+let lastUpdate = null;
 
 // on construit la liste des shows
-var lang_list = ["FR", "EN", "AR", "HE", "ES", "IT", "DE", "PT", "RU", "PL", "JA", "RO_IT", "ZH_EN", "LT_EN"];
-var shows_list = _.flatten(_.map([1, 2, 3, 4], num => {
+let lang_list = ["FR", "EN", "AR", "HE", "ES", "IT", "DE", "PT", "RU", "PL", "JA", "RO_IT", "ZH_EN", "LT_EN"];
+let shows_list = _.flatten(_.map([1, 2, 3, 4], num => {
   return _.map(lang_list, lang => "Room " + num + " - " + lang)
 }));
 
 connect()
-  .then(r => console.log('First time connection successful for watchoutStatus'))
-  .catch(e => console.log('First time connection impossible for watchoutStatus :('));
 
 // connect the socket to the watchout server
 function connect() {
-  return new Promise((resolve, reject) => {
-    client.connect(3039, '192.168.100.33', function() {
-      console.log('Client watchoutStatus Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss") + ', authenticating now...');
-      send("authenticate 1\n");
-      connected = true;
-      resolve(true)
-    });
-
-    var myClock = setInterval(_ => {
-      if (!connected && errorQueue['timedout']) {
-        errorQueue['timedout'] = undefined;
-        clearInterval(myClock);
-        reject(false)
-      } else if (connected) {
-        clearInterval(myClock);
-        return
-      }
-    }, 200)
-  })
+  if (!client.connecting) {
+    errorQueue = {}
+    client.connect(PORT, IP_ADDR)
+  }
 }
+
+client.on('connect', function() {
+  console.log('Client watchoutStatus Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss") + ', authenticating now');
+  send("authenticate 1\n");
+  connected = true;
+  return true
+})
 
 client.on('data', function(data) {
   if (/Ready/gi.test(data)) {
@@ -89,22 +84,26 @@ client.on('data', function(data) {
 });
 
 client.on('close', function() {
-  connected = false;
-  console.log('Client WatchoutStatus Connection closed');
+  connected = false
+  let h = moment().hours()
+  let ms = (h > 8 && h < 22) ? 2000 : 10800000
+  setTimeout(connect, ms)
 });
 
 client.on('error', e => {
+  let h = moment().hours()
+  let ms = (h > 8 && h < 22) ? 2000 : 10800000
+
   if (e.errno && e.errno == "ECONNRESET") {
-    connected = false;
-    console.log("Trying to reconnect...")
-    connect()
+    printText("Trying to reconnect...")
   } else if (e.errno && e.errno == "ETIMEDOUT") {
-    connected = false;
     errorQueue['timedout'] = true;
-    console.log('Unable to connect to watchout server (time out)')
+    printText(`Unable to connect to watchout server (time out ${IP_ADDR}:${PORT}). Waiting ${ms/1000}s before connection retry...`)
+  } else if (e.errno && e.errno == "EHOSTUNREACH") {
+    errorQueue['unreach'] = true;
+    printText(`Unable to reach watchout server (${IP_ADDR}:${PORT}). Waiting ${ms/1000}s before connection retry...`)
   } else if (e.errno && e.errno == "ECONNREFUSED") {
-    connected = false;
-    console.log('Unable to connect to watchout server (connection refused)')
+    printText(`Unable to connect to watchout server (connection refused). Waiting 1 hour before connection retry...`)
   } else {
     console.log("Socket watchoutStatus error : ", e)
   }
@@ -221,7 +220,7 @@ function getStatusAll() {
           resolve(showStatus)
         } else if (c > 200) {
           clearInterval(clock);
-          console.log("getStatusAll TIMEOUT :( " + JSON.stringify(showStatus));
+          printText("getStatusAll TIMEOUT :( " + JSON.stringify(showStatus));
           reject(showStatus)
         }
       }, 100)
@@ -231,7 +230,7 @@ function getStatusAll() {
 
 function ping() {
   if (!connected) {
-    console.log("cannot ping because not connected to watchout server")
+    printText("cannot ping because not connected to watchout server")
     return Promise.reject(false);
   }
 
@@ -253,6 +252,12 @@ function ping() {
       c++
     }, c_interval)
   })
+}
+
+function printText(texte) {
+  process.stdout.clearLine();
+  process.stdout.cursorTo(0);
+  process.stdout.write(texte);
 }
 
 // ====== TERMINATE GRACEFULLY =====

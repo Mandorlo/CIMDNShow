@@ -87,4 +87,9 @@ function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
+
+  console.log('Listening on ' + bind)
+  console.log('\n\t\t=========================================')
+  console.log('\t\t======== CIMDN Show Version 1.0 =========')
+  console.log('\t\t=========================================\n')
 }

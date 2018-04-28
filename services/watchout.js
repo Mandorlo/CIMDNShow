@@ -2,59 +2,62 @@
 // all commands sent to watchout have to end with a \n
 // watchout commands : http://www.eurolocation.fr/docs/watchout4.pdf page 221
 
-var CMDLINE_USAGE = false; // set to true if you want to use this module from the cmd line
+const CMDLINE_USAGE = false // set to true if you want to use this module from the cmd line
+const IP_ADDR = '192.168.100.53'
+const PORT = 3040
 
-var net = require('net');
-var _ = require('lodash');
-var moment = require('moment');
+let net = require('net')
+let _ = require('lodash')
+let moment = require('moment')
+let process = require('process')
+process.setMaxListeners(2);
 
-var client = new net.Socket();
-var connected = false;
-var errorQueue = {};
+let client = new net.Socket()
+let connected = false
+let errorQueue = {}
 
-connect();
+connect()
 
 function connect() {
-  return new Promise((resolve, reject) => {
-    client.connect(3040, '192.168.100.53', function() {
-      console.log('Client Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss"));
-      connected = true;
-      resolve(true)
-    });
-  })
-
-  var myClock = setInterval(_ => {
-    if (!connected && errorQueue['timedout']) {
-      errorQueue['timedout'] = undefined;
-      clearInterval(myClock);
-      reject(false)
-    } else if (connected) {
-      clearInterval(myClock);
-      return
-    }
-  }, 200)
+  if (!client.connecting) {
+    errorQueue = {}
+    client.connect(PORT, IP_ADDR);
+  }
 }
+
+client.on('connect', function() {
+  console.log('Client Connected on ' + moment().format("DD-MM-YYYY HH:mm:ss"));
+  connected = true;
+  return connected
+})
 
 client.on('data', function(data) {
   console.log('Client Received: ' + data);
   //client.destroy(); // kill client after server's response
-});
+})
 
 client.on('close', function() {
-  console.log('Client Connection closed');
+  connected = false
+  let h = moment().hours()
+  let ms = (h > 8 && h < 22) ? 2000 : 10800000
+  setTimeout(connect, ms)
 });
 
 client.on('error', e => {
+  let h = moment().hours()
+  let ms = (h > 8 && h < 22) ? 2000 : 10800000
+
   if (e.errno && e.errno == "ECONNRESET") {
-    connected = false;
-    console.log("Trying to reconnect...")
-    connect()
+    printText("Trying to reconnect...")
   } else if (e.errno && e.errno == "ETIMEDOUT") {
-    connected = false;
     errorQueue['timedout'] = true;
-    console.log('Unable to connect to watchout server (time out)')
+    printText(`Timeout to connect to watchout server, Waiting ${ms/1000}s before connection retry...`)
+  } else if (e.errno && e.errno == "EHOSTUNREACH") {
+    errorQueue['hostunreach'] = true
+    printText(`Unable to reach watchout server, waiting ${ms/1000}s before connection retry...`)
   } else {
     console.log("Socket watchoutStatus error : ", e)
+    console.log(`Waiting ${ms/1000}s before connection retry...`)
   }
 })
 
@@ -130,9 +133,15 @@ function gotoControlCue(timeline, command) {
   send('gotoControlCue \"' + command + '\" false ' + timeline + '\n');
 }
 
+function printText(texte) {
+  process.stdout.clearLine();
+  process.stdout.cursorTo(0);
+  process.stdout.write(texte);
+}
+
 
 // ====== TERMINATE GRACEFULLY =====
-if (process.platform === "win32"  && !CMDLINE_USAGE) {
+if (process.platform === "win32" && !CMDLINE_USAGE) {
   var rl = require("readline").createInterface({
     input: process.stdin,
     output: process.stdout
